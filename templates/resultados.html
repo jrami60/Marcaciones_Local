@@ -163,6 +163,31 @@
       </div>
     </form>
 
+    <!-- Botones de exportación -->
+    {% if total_sin_filtro > 0 %}
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-xs text-wgray-100 font-semibold">Exportar {{ total_sin_filtro }} registros:</span>
+      <a href="/export/excel{% if current_analysis_id %}?analysis_id={{ current_analysis_id }}{% endif %}"
+         class="inline-flex items-center gap-2 bg-wgreen-100 hover:bg-green-700 text-white font-bold
+                text-xs px-4 py-2 rounded-lg shadow transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        Descargar Excel
+      </a>
+      <a href="/export/pdf{% if current_analysis_id %}?analysis_id={{ current_analysis_id }}{% endif %}"
+         class="inline-flex items-center gap-2 bg-wred-100 hover:bg-red-700 text-white font-bold
+                text-xs px-4 py-2 rounded-lg shadow transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        Descargar PDF
+      </a>
+    </div>
+    {% endif %}
+
     <!-- Tabla principal -->
     {% if rows %}
     <div class="bg-white rounded-xl shadow border border-wgray-50 overflow-x-auto">

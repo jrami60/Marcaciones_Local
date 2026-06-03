@@ -8,13 +8,19 @@ from datetime import date, time
 from typing import Optional
 
 from fastapi import FastAPI, File, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import (
+    HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse,
+)
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 import auth
 import database as db
+import exporters
 from analyzer import RegistroDia, analizar
 from parsers import extract_store_info, parse_marcas, parse_turnos
+
+# Token para seed inicial (solo se usa una vez)
+_SEED_TOKEN = "seed-marcaciones-walmart-2026"
 
 app = FastAPI(title="Marcaciones Walmart Chile")
 
@@ -215,9 +221,17 @@ async def upload_marcas(request: Request, file: UploadFile = File(...)):
         )
         store_id = store["id"]
         state = _store_state(store_id)
+
+        # Limpiar datos anteriores al cargar un nuevo reporte
+        db.delete_analyses_for_store(store_id)
+        db.delete_uploads_for_store(store_id)
+
         state["marcas"] = marcas
         state["marcas_nombre"] = file.filename
         state["resultados"] = []
+        state["turnos"] = []
+        state["turnos_nombre"] = ""
+        state["last_analysis_id"] = None
 
         db.save_upload(store_id, user["id"], "marcas",
                        file.filename, date.today(), len(marcas))
@@ -392,6 +406,102 @@ async def admin_crear_usuario(request: Request):
             **_base_ctx(user), "stores": stores,
             "ok": False, "error": str(e),
         })
+
+
+# ---------------------------------------------------------------------------
+# Seed: crea tiendas + usuarios iniciales (llamar UNA vez desde el browser)
+# URL: /seed/seed-marcaciones-walmart-2026
+# ---------------------------------------------------------------------------
+
+@app.get("/seed/{token}")
+async def seed_usuarios(token: str):
+    if token != _SEED_TOKEN:
+        return JSONResponse({"error": "Token invalido"}, status_code=403)
+
+    resultados: list[str] = []
+
+    # Tiendas
+    s929 = db.get_or_create_store("929", "La Paloma")
+    s670 = db.get_or_create_store("670", "Local 670")
+    resultados.append(f"Tienda 929 id={s929['id']}")
+    resultados.append(f"Tienda 670 id={s670['id']}")
+
+    # Usuario Lider_929
+    if not db.get_user_by_username("Lider_929"):
+        db.create_user("Lider_929", auth.hash_password("Lider929"),
+                       s929["id"], is_admin=True)
+        resultados.append("Lider_929 CREADO (admin, tienda 929)")
+    else:
+        resultados.append("Lider_929 ya existe")
+
+    # Usuario Lider_670
+    if not db.get_user_by_username("Lider_670"):
+        db.create_user("Lider_670", auth.hash_password("Lider670"),
+                       s670["id"], is_admin=True)
+        resultados.append("Lider_670 CREADO (admin, tienda 670)")
+    else:
+        resultados.append("Lider_670 ya existe")
+
+    return JSONResponse({"ok": True, "resultados": resultados})
+
+
+# ---------------------------------------------------------------------------
+# Export: Excel y PDF desde resultados en memoria
+# ---------------------------------------------------------------------------
+
+def _get_rows_for_export(user: dict, analysis_id: str) -> tuple[list[dict], str, str]:
+    """Retorna (rows, store_name, store_number) para exportar."""
+    store       = user.get("stores") or {}
+    store_id    = store.get("id")
+    store_name  = store.get("store_name", "")
+    store_number= store.get("store_number", "")
+
+    if analysis_id:
+        row = db.get_analysis_by_id(analysis_id)
+        rows = row["result_json"] if row else []
+    else:
+        state = _store_state(store_id)
+        rows  = [_registro_to_dict(r) for r in state.get("resultados", [])]
+
+    return rows, store_name, store_number
+
+
+@app.get("/export/excel")
+async def export_excel(request: Request, analysis_id: str = ""):
+    user = auth.get_user_from_request(request)
+    if not user:
+        return _redirect_login()
+
+    rows, store_name, store_number = _get_rows_for_export(user, analysis_id)
+    if not rows:
+        return JSONResponse({"error": "Sin resultados para exportar"}, status_code=400)
+
+    data     = exporters.export_to_excel(rows, store_name, store_number)
+    filename = f"Marcaciones_{store_number}_{date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/export/pdf")
+async def export_pdf(request: Request, analysis_id: str = ""):
+    user = auth.get_user_from_request(request)
+    if not user:
+        return _redirect_login()
+
+    rows, store_name, store_number = _get_rows_for_export(user, analysis_id)
+    if not rows:
+        return JSONResponse({"error": "Sin resultados para exportar"}, status_code=400)
+
+    data     = exporters.export_to_pdf(rows, store_name, store_number)
+    filename = f"Marcaciones_{store_number}_{date.today().isoformat()}.pdf"
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 if __name__ == "__main__":

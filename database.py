@@ -207,3 +207,21 @@ def get_analysis_by_id(analysis_id: str) -> dict | None:
         .select("*").eq("id", analysis_id).execute()
     )
     return r.data[0] if r.data else None
+
+
+# ---------------------------------------------------------------------------
+# Limpieza de datos anteriores (nuevo reporte borra el anterior)
+# ---------------------------------------------------------------------------
+
+def delete_analyses_for_store(store_id: int) -> None:
+    """Elimina todos los análisis guardados de una tienda."""
+    if DEV_MODE:
+        return
+    get_db().table("analysis_results").delete().eq("store_id", store_id).execute()
+
+
+def delete_uploads_for_store(store_id: int) -> None:
+    """Elimina todos los registros de uploads de una tienda."""
+    if DEV_MODE:
+        return
+    get_db().table("uploads").delete().eq("store_id", store_id).execute()
