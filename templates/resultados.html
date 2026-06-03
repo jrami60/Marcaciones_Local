@@ -56,28 +56,54 @@
 
   <main class="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
 
-    <!-- KPIs -->
+    <!-- KPIs clickeables -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+
+      <!-- Total (limpia filtro estado) -->
+      <button onclick="filtrarPorEstado('')"
+        class="kpi-card group bg-white rounded-xl shadow p-4 border-2 text-center transition-all duration-150 w-full
+               {% if not filtro_estado %}border-wblue-100 ring-2 ring-wblue-100/30{% else %}border-wgray-50 hover:border-wblue-100 hover:shadow-md{% endif %}">
         <div class="text-2xl font-bold text-wblue-100">{{ total }}</div>
-        <div class="text-xs text-wgray-100 mt-1">Registros</div>
-      </div>
-      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-xs text-wgray-100 mt-1 group-hover:text-wblue-100 transition-colors">Registros</div>
+        {% if not filtro_estado %}<div class="text-[9px] text-wblue-100 mt-0.5 font-semibold">● ACTIVO</div>{% endif %}
+      </button>
+
+      <!-- Exceso colación -->
+      <button onclick="filtrarPorEstado('EXCESO')"
+        class="kpi-card group bg-white rounded-xl shadow p-4 border-2 text-center transition-all duration-150 w-full
+               {% if filtro_estado == 'EXCESO' %}border-red-500 ring-2 ring-red-200{% else %}border-wgray-50 hover:border-red-400 hover:shadow-md{% endif %}">
         <div class="text-2xl font-bold text-red-600">{{ con_exceso }}</div>
-        <div class="text-xs text-wgray-100 mt-1">Exceso colación</div>
-      </div>
-      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-xs text-wgray-100 mt-1 group-hover:text-red-600 transition-colors">Exceso colación</div>
+        {% if filtro_estado == 'EXCESO' %}<div class="text-[9px] text-red-500 mt-0.5 font-semibold">● ACTIVO</div>{% endif %}
+      </button>
+
+      <!-- En tolerancia -->
+      <button onclick="filtrarPorEstado('TOLERANCIA')"
+        class="kpi-card group bg-white rounded-xl shadow p-4 border-2 text-center transition-all duration-150 w-full
+               {% if filtro_estado == 'TOLERANCIA' %}border-yellow-400 ring-2 ring-yellow-100{% else %}border-wgray-50 hover:border-yellow-400 hover:shadow-md{% endif %}">
         <div class="text-2xl font-bold text-yellow-500">{{ con_tolerancia }}</div>
-        <div class="text-xs text-wgray-100 mt-1">En tolerancia</div>
-      </div>
-      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
-        <div class="text-2xl font-bold text-red-600">{{ con_atraso }}</div>
-        <div class="text-xs text-wgray-100 mt-1">Atrasos entrada</div>
-      </div>
-      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-xs text-wgray-100 mt-1 group-hover:text-yellow-600 transition-colors">En tolerancia</div>
+        {% if filtro_estado == 'TOLERANCIA' %}<div class="text-[9px] text-yellow-500 mt-0.5 font-semibold">● ACTIVO</div>{% endif %}
+      </button>
+
+      <!-- Atrasos entrada -->
+      <button onclick="filtrarPorEstado('ATRASO')"
+        class="kpi-card group bg-white rounded-xl shadow p-4 border-2 text-center transition-all duration-150 w-full
+               {% if filtro_estado == 'ATRASO' %}border-orange-400 ring-2 ring-orange-100{% else %}border-wgray-50 hover:border-orange-400 hover:shadow-md{% endif %}">
+        <div class="text-2xl font-bold text-orange-600">{{ con_atraso }}</div>
+        <div class="text-xs text-wgray-100 mt-1 group-hover:text-orange-600 transition-colors">Atrasos entrada</div>
+        {% if filtro_estado == 'ATRASO' %}<div class="text-[9px] text-orange-500 mt-0.5 font-semibold">● ACTIVO</div>{% endif %}
+      </button>
+
+      <!-- Extras salida -->
+      <button onclick="filtrarPorEstado('EXTRA')"
+        class="kpi-card group bg-white rounded-xl shadow p-4 border-2 text-center transition-all duration-150 w-full
+               {% if filtro_estado == 'EXTRA' %}border-blue-400 ring-2 ring-blue-100{% else %}border-wgray-50 hover:border-blue-400 hover:shadow-md{% endif %}">
         <div class="text-2xl font-bold text-blue-600">{{ con_extra }}</div>
-        <div class="text-xs text-wgray-100 mt-1">Extras salida</div>
-      </div>
+        <div class="text-xs text-wgray-100 mt-1 group-hover:text-blue-600 transition-colors">Extras salida</div>
+        {% if filtro_estado == 'EXTRA' %}<div class="text-[9px] text-blue-500 mt-0.5 font-semibold">● ACTIVO</div>{% endif %}
+      </button>
+
     </div>
 
     <!-- Filtros -->
@@ -276,6 +302,28 @@
   <footer class="text-center text-xs text-wgray-100 py-6">
     Walmart Chile · 929 La Paloma · Sistema de Control de Marcaciones
   </footer>
+
+  <script>
+    /**
+     * Al pinchar un KPI, toma los filtros actuales del formulario
+     * (fecha, nombre, sección) y navega con el nuevo estado.
+     * Si estado es '' limpia ese filtro.
+     */
+    function filtrarPorEstado(estado) {
+      const form  = document.querySelector('form[action="/resultados"]');
+      const fecha   = form.querySelector('[name="fecha"]').value;
+      const nombre  = form.querySelector('[name="nombre"]').value;
+      const seccion = form.querySelector('[name="seccion"]').value;
+
+      const params = new URLSearchParams();
+      if (fecha)   params.set('fecha',   fecha);
+      if (nombre)  params.set('nombre',  nombre);
+      if (seccion) params.set('seccion', seccion);
+      if (estado)  params.set('estado',  estado);
+
+      window.location.href = '/resultados?' + params.toString();
+    }
+  </script>
 
 </body>
 </html>
