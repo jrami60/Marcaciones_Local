@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resultados – Marcaciones 929</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            wblue: { 100: '#0053e2', 110: '#0046c0' },
+            wspark: { 100: '#ffc220', 10: '#fff8e1', 140: '#995213' },
+            wred: { 100: '#ea1100' },
+            wgreen: { 100: '#2a8703' },
+            wgray: { 10: '#f5f5f5', 50: '#d9d9d9', 100: '#b3b3b3', 160: '#333333' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .estado-OK        { background-color: #dcfce7; color: #166534; }
+    .estado-TOLERANCIA{ background-color: #fef9c3; color: #854d0e; }
+    .estado-EXCESO    { background-color: #fee2e2; color: #991b1b; }
+    .estado-FALTA     { background-color: #fee2e2; color: #991b1b; }
+    .estado-SIN_MARCA { background-color: #f3f4f6; color: #6b7280; }
+    .estado-SIN_TURNO { background-color: #f3f4f6; color: #6b7280; }
+    .estado-ATRASO    { background-color: #fee2e2; color: #991b1b; }
+    .estado-ANTICIPADO{ background-color: #fef9c3; color: #854d0e; }
+    .estado-EXTRA     { background-color: #dbeafe; color: #1e40af; }
+    .estado-SIN_PAR   { background-color: #fef9c3; color: #854d0e; }
+    .estado-SIN_COLACION { background-color: #f3f4f6; color: #6b7280; }
+  </style>
+</head>
+<body class="bg-wgray-10 min-h-screen font-sans text-wgray-160 text-sm">
+
+  <!-- Header -->
+  <header class="bg-wblue-100 text-white shadow-md sticky top-0 z-50">
+    <div class="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="text-white hover:text-wspark-100 font-bold text-lg">← Marcaciones 929</a>
+        <span class="text-blue-200 text-xs hidden md:inline">La Paloma</span>
+      </div>
+      <div class="text-xs text-blue-200 hidden md:block">
+        {% if marcas_nombre %}📂 {{ marcas_nombre }}{% endif %}
+        {% if turnos_nombre %} · 📅 {{ turnos_nombre }}{% endif %}
+      </div>
+      <a href="/" class="bg-wspark-100 hover:bg-yellow-400 text-wgray-160 font-bold py-1 px-4 rounded-full text-xs transition-colors">
+        + Cargar archivos
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-screen-xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- KPIs -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-2xl font-bold text-wblue-100">{{ total }}</div>
+        <div class="text-xs text-wgray-100 mt-1">Registros</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-2xl font-bold text-red-600">{{ con_exceso }}</div>
+        <div class="text-xs text-wgray-100 mt-1">Exceso colación</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-2xl font-bold text-yellow-500">{{ con_tolerancia }}</div>
+        <div class="text-xs text-wgray-100 mt-1">En tolerancia</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-2xl font-bold text-red-600">{{ con_atraso }}</div>
+        <div class="text-xs text-wgray-100 mt-1">Atrasos entrada</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 border border-wgray-50 text-center">
+        <div class="text-2xl font-bold text-blue-600">{{ con_extra }}</div>
+        <div class="text-xs text-wgray-100 mt-1">Extras salida</div>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <form method="get" action="/resultados" class="bg-white rounded-xl shadow p-4 border border-wgray-50">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+        <div>
+          <label class="text-xs font-bold text-wgray-160 block mb-1">Fecha</label>
+          <select name="fecha" class="w-full border border-wgray-50 rounded-lg px-2 py-1.5 text-xs">
+            <option value="">— Todas —</option>
+            {% for f in todas_fechas %}
+            <option value="{{ f }}" {% if filtro_fecha == f %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-wgray-160 block mb-1">Nombre</label>
+          <input type="text" name="nombre" value="{{ filtro_nombre }}" placeholder="Buscar nombre..."
+            class="w-full border border-wgray-50 rounded-lg px-2 py-1.5 text-xs" />
+        </div>
+        <div>
+          <label class="text-xs font-bold text-wgray-160 block mb-1">Sección</label>
+          <select name="seccion" class="w-full border border-wgray-50 rounded-lg px-2 py-1.5 text-xs">
+            <option value="">— Todas —</option>
+            {% for s in todas_secciones %}
+            <option value="{{ s }}" {% if filtro_seccion == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-bold text-wgray-160 block mb-1">Estado colación</label>
+          <select name="estado" class="w-full border border-wgray-50 rounded-lg px-2 py-1.5 text-xs">
+            <option value="">— Todos —</option>
+            <option value="OK" {% if filtro_estado == 'OK' %}selected{% endif %}>OK</option>
+            <option value="TOLERANCIA" {% if filtro_estado == 'TOLERANCIA' %}selected{% endif %}>Tolerancia</option>
+            <option value="EXCESO" {% if filtro_estado == 'EXCESO' %}selected{% endif %}>Exceso</option>
+            <option value="ATRASO" {% if filtro_estado == 'ATRASO' %}selected{% endif %}>Atraso</option>
+            <option value="EXTRA" {% if filtro_estado == 'EXTRA' %}selected{% endif %}>Extra</option>
+          </select>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="bg-wblue-100 hover:bg-wblue-110 text-white rounded-lg px-3 py-1.5 text-xs font-bold flex-1 transition-colors">
+            Filtrar
+          </button>
+          <a href="/resultados" class="border border-wgray-50 hover:bg-wgray-10 text-wgray-160 rounded-lg px-3 py-1.5 text-xs text-center flex-1 transition-colors">
+            Limpiar
+          </a>
+        </div>
+      </div>
+    </form>
+
+    <!-- Tabla principal -->
+    {% if rows %}
+    <div class="bg-white rounded-xl shadow border border-wgray-50 overflow-x-auto">
+      <table class="w-full text-xs border-collapse min-w-[1100px]">
+        <thead>
+          <tr class="bg-wblue-100 text-white">
+            <th class="px-3 py-2 text-left font-bold sticky left-0 bg-wblue-100 z-10">Colaborador</th>
+            <th class="px-3 py-2 text-center font-bold">Fecha</th>
+            <th class="px-3 py-2 text-center font-bold">Turno Plan.</th>
+            <th class="px-3 py-2 text-center font-bold">Llegada</th>
+            <th class="px-3 py-2 text-center font-bold">Entrada</th>
+            <th class="px-3 py-2 text-center font-bold">Atraso</th>
+            <th class="px-3 py-2 text-center font-bold">Salida</th>
+            <th class="px-3 py-2 text-center font-bold">Salida Est.</th>
+            <th class="px-3 py-2 text-center font-bold">Extra</th>
+            <th class="px-3 py-2 text-center font-bold">Colaciones</th>
+            <th class="px-3 py-2 text-left font-bold">Alertas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr class="border-b border-wgray-50 hover:bg-wgray-10 transition-colors
+                     {% if r.estado_colacion == 'EXCESO' %}bg-red-50{% elif r.estado_colacion == 'TOLERANCIA' %}bg-yellow-50{% endif %}">
+
+            <!-- Colaborador -->
+            <td class="px-3 py-2 sticky left-0 bg-white border-r border-wgray-50 min-w-[180px]">
+              <div class="font-semibold text-wgray-160 leading-tight">{{ r.nombre }}</div>
+              <div class="text-wgray-100 text-[10px]">{{ r.cargo }} · {{ r.seccion }}</div>
+              <div class="text-wgray-100 text-[10px]">RUT: {{ r.rut }}</div>
+            </td>
+
+            <!-- Fecha -->
+            <td class="px-3 py-2 text-center whitespace-nowrap font-medium">{{ r.fecha }}</td>
+
+            <!-- Turno planificado -->
+            <td class="px-3 py-2 text-center whitespace-nowrap">
+              <span class="{% if r.turno_raw == '—' %}text-wgray-100{% else %}font-medium{% endif %}">
+                {{ r.turno_raw }}
+              </span>
+              {% if r.es_nocturno %}
+              <span class="ml-1 text-[9px] bg-indigo-100 text-indigo-700 rounded px-1">NOCHE</span>
+              {% endif %}
+            </td>
+
+            <!-- Llegada real -->
+            <td class="px-3 py-2 text-center">{{ r.llegada }}</td>
+
+            <!-- Estado entrada -->
+            <td class="px-3 py-2 text-center">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold estado-{{ r.estado_entrada }}">
+                {{ r.estado_entrada }}
+              </span>
+            </td>
+
+            <!-- Atraso -->
+            <td class="px-3 py-2 text-center">
+              {% if r.atraso_min > 0 %}
+                <span class="text-red-600 font-bold">+{{ r.atraso_min }} min</span>
+              {% elif r.atraso_min < 0 %}
+                <span class="text-yellow-600">{{ r.atraso_min }} min</span>
+              {% else %}
+                <span class="text-wgray-100">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Salida real -->
+            <td class="px-3 py-2 text-center">{{ r.salida }}</td>
+
+            <!-- Estado salida -->
+            <td class="px-3 py-2 text-center">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold estado-{{ r.estado_salida }}">
+                {{ r.estado_salida }}
+              </span>
+            </td>
+
+            <!-- Extra -->
+            <td class="px-3 py-2 text-center">
+              {% if r.extra_min > 0 %}
+                <span class="text-blue-600 font-bold">+{{ r.extra_min }} min</span>
+              {% elif r.extra_min < 0 %}
+                <span class="text-yellow-600">{{ r.extra_min }} min</span>
+              {% else %}
+                <span class="text-wgray-100">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Colaciones -->
+            <td class="px-3 py-2 min-w-[200px]">
+              {% if not r.pausas %}
+                <span class="text-wgray-100 italic">Sin pausas</span>
+              {% else %}
+                <div class="space-y-1">
+                  {% for p in r.pausas %}
+                  <div class="flex items-center gap-1 rounded px-2 py-0.5 estado-{{ p.estado }}">
+                    {% if p.estado != 'FALTA' and p.estado != 'SIN_PAR' %}
+                      <span class="font-mono">{{ p.inicio }}→{{ p.fin }}</span>
+                      <span class="ml-1 font-bold">{{ p.duracion }} min</span>
+                      {% if p.exceso > 0 %}
+                        <span class="ml-auto">(+{{ p.exceso }})</span>
+                      {% endif %}
+                    {% elif p.estado == 'FALTA' %}
+                      <span class="font-bold">❌ Falta colación 30 min</span>
+                    {% else %}
+                      <span>⚠ Sin fin de pausa</span>
+                    {% endif %}
+                    {% if p.obligatoria %}
+                      <span class="text-[9px] ml-auto opacity-70">OBL</span>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </td>
+
+            <!-- Alertas -->
+            <td class="px-3 py-2 min-w-[180px]">
+              {% if r.alertas %}
+                <ul class="space-y-0.5">
+                  {% for a in r.alertas %}
+                  <li class="text-[10px] text-red-700">{{ a }}</li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <span class="text-wgreen-100 font-medium text-[10px]">✅ Sin alertas</span>
+              {% endif %}
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <p class="text-xs text-wgray-100 text-right">Mostrando {{ rows|length }} de {{ total }} registros</p>
+
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-12 text-center border border-wgray-50">
+      <div class="text-4xl mb-3">🔍</div>
+      <p class="text-wgray-100">No hay resultados para los filtros aplicados.</p>
+      <a href="/resultados" class="mt-3 inline-block text-wblue-100 underline text-sm">Ver todos</a>
+    </div>
+    {% endif %}
+
+  </main>
+
+  <footer class="text-center text-xs text-wgray-100 py-6">
+    Walmart Chile · 929 La Paloma · Sistema de Control de Marcaciones
+  </footer>
+
+</body>
+</html>

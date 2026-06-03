@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Marcaciones 929 – La Paloma</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            wblue: { 100: '#0053e2', 110: '#0046c0' },
+            wspark: { 100: '#ffc220', 10: '#fff8e1', 140: '#995213' },
+            wred: { 100: '#ea1100' },
+            wgreen: { 100: '#2a8703' },
+            wgray: { 10: '#f5f5f5', 50: '#d9d9d9', 100: '#b3b3b3', 160: '#333333' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-wgray-10 min-h-screen font-sans text-wgray-160">
+
+  <!-- Header -->
+  <header class="bg-wblue-100 text-white shadow-md">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+      <div class="bg-wspark-100 rounded-full p-2">
+        <svg class="w-8 h-8 text-wgray-160" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L3 7v10l9 5 9-5V7L12 2zm0 2.5l6.5 3.6v7.8L12 19.5l-6.5-3.6V8.1L12 4.5z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Marcaciones 929 – La Paloma</h1>
+        <p class="text-blue-200 text-sm">Control de colaciones y turnos planificados</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-8">
+
+    <!-- Instrucciones -->
+    <div class="bg-white rounded-2xl shadow p-6 border border-wgray-50">
+      <h2 class="text-lg font-bold text-wblue-100 mb-2">📋 ¿Cómo funciona?</h2>
+      <ol class="list-decimal list-inside space-y-1 text-sm text-wgray-160">
+        <li>Carga el archivo de <strong>Reporte Marcas</strong> (marcaciones del reloj)</li>
+        <li>Carga el archivo de <strong>Turnos Planificados</strong> (malla de turnos)</li>
+        <li>Haz clic en <strong>Analizar</strong> para ver desviaciones, colaciones y atrasos</li>
+      </ol>
+    </div>
+
+    <!-- Carga de archivos -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- Marcas -->
+      <div class="bg-white rounded-2xl shadow p-6 border border-wgray-50" id="card-marcas">
+        <h3 class="font-bold text-base mb-1 flex items-center gap-2">
+          <span class="bg-wblue-100 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">1</span>
+          Reporte Marcas
+        </h3>
+        <p class="text-xs text-wgray-100 mb-3">Ej: <em>Reporte Marcas 01.06.2026.XLSX</em></p>
+
+        <label class="block w-full cursor-pointer border-2 border-dashed border-wgray-50 hover:border-wblue-100 rounded-xl p-4 text-center transition-colors" id="lbl-marcas">
+          <input type="file" accept=".xlsx,.xls" class="hidden" id="inp-marcas" onchange="uploadFile(this,'marcas')" />
+          <div id="marcas-icon" class="text-3xl mb-1">📂</div>
+          <div id="marcas-status" class="text-sm text-wgray-100">
+            {% if marcas_nombre %}
+              <span class="text-wgreen-100 font-medium">✅ {{ marcas_nombre }}</span>
+            {% else %}
+              Arrastra o haz clic para cargar
+            {% endif %}
+          </div>
+        </label>
+      </div>
+
+      <!-- Turnos -->
+      <div class="bg-white rounded-2xl shadow p-6 border border-wgray-50" id="card-turnos">
+        <h3 class="font-bold text-base mb-1 flex items-center gap-2">
+          <span class="bg-wblue-100 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">2</span>
+          Turnos Planificados
+        </h3>
+        <p class="text-xs text-wgray-100 mb-3">Ej: <em>ReporteTurnoResumen_929-...xlsx</em></p>
+
+        <label class="block w-full cursor-pointer border-2 border-dashed border-wgray-50 hover:border-wblue-100 rounded-xl p-4 text-center transition-colors" id="lbl-turnos">
+          <input type="file" accept=".xlsx,.xls" class="hidden" id="inp-turnos" onchange="uploadFile(this,'turnos')" />
+          <div id="turnos-icon" class="text-3xl mb-1">📅</div>
+          <div id="turnos-status" class="text-sm text-wgray-100">
+            {% if turnos_nombre %}
+              <span class="text-wgreen-100 font-medium">✅ {{ turnos_nombre }}</span>
+            {% else %}
+              Arrastra o haz clic para cargar
+            {% endif %}
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Botón analizar -->
+    <div class="flex flex-col items-center gap-3">
+      <button id="btn-analizar"
+        onclick="runAnalizar()"
+        class="bg-wblue-100 hover:bg-wblue-110 text-white font-bold py-3 px-10 rounded-full text-lg shadow transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        🔍 Analizar Marcaciones
+      </button>
+      <div id="msg-analizar" class="text-sm text-wgray-100"></div>
+    </div>
+
+    <!-- Leyenda colores -->
+    <div class="bg-white rounded-2xl shadow p-5 border border-wgray-50">
+      <h3 class="font-bold text-sm text-wgray-160 mb-3">📊 Leyenda de estados</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-green-100 inline-block"></span> OK — dentro de tolerancia</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-yellow-200 inline-block"></span> Tolerancia — leve exceso</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-red-200 inline-block"></span> Exceso — supera tolerancia</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-gray-200 inline-block"></span> Sin turno / sin marca</div>
+      </div>
+    </div>
+
+    <!-- Reglas -->
+    <div class="bg-white rounded-2xl shadow p-5 border border-wgray-50">
+      <h3 class="font-bold text-sm text-wgray-160 mb-3">📏 Reglas de colación</h3>
+      <div class="overflow-x-auto">
+        <table class="text-xs w-full border-collapse">
+          <thead>
+            <tr class="bg-wgray-10 text-wgray-160 font-bold">
+              <th class="p-2 text-left border border-wgray-50">Tipo Turno</th>
+              <th class="p-2 text-center border border-wgray-50">Pausas</th>
+              <th class="p-2 text-center border border-wgray-50">Duración</th>
+              <th class="p-2 text-center border border-wgray-50">Tolerancia</th>
+              <th class="p-2 text-center border border-wgray-50">Obligatoria</th>
+            </tr>
+          </thead>
+          <tbody class="text-wgray-160">
+            <tr><td class="p-2 border border-wgray-50">AM / PM (1 pausa)</td><td class="p-2 text-center border border-wgray-50">1</td><td class="p-2 text-center border border-wgray-50">30 min</td><td class="p-2 text-center border border-wgray-50">+2 min</td><td class="p-2 text-center border border-wgray-50">✅</td></tr>
+            <tr class="bg-wgray-10"><td class="p-2 border border-wgray-50">AM / PM (2 pausas)</td><td class="p-2 text-center border border-wgray-50">1ª</td><td class="p-2 text-center border border-wgray-50">15 min</td><td class="p-2 text-center border border-wgray-50">+1 min</td><td class="p-2 text-center border border-wgray-50">—</td></tr>
+            <tr class="bg-wgray-10"><td class="p-2 border border-wgray-50"></td><td class="p-2 text-center border border-wgray-50">2ª</td><td class="p-2 text-center border border-wgray-50">30 min</td><td class="p-2 text-center border border-wgray-50">+2 min</td><td class="p-2 text-center border border-wgray-50">✅</td></tr>
+            <tr><td class="p-2 border border-wgray-50">Noche (≥21:00)</td><td class="p-2 text-center border border-wgray-50">1</td><td class="p-2 text-center border border-wgray-50">30 min</td><td class="p-2 text-center border border-wgray-50">+2 min</td><td class="p-2 text-center border border-wgray-50">✅</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-xs text-wgray-100 mt-2">Tolerancia de entrada/salida de turno: ±10 minutos</p>
+    </div>
+
+  </main>
+
+  <footer class="text-center text-xs text-wgray-100 py-6">
+    Walmart Chile · 929 La Paloma · Sistema de Control de Marcaciones
+  </footer>
+
+  <script>
+    async function uploadFile(input, tipo) {
+      const file = input.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById(`${tipo}-status`);
+      const iconEl = document.getElementById(`${tipo}-icon`);
+      statusEl.innerHTML = '<span class="text-wgray-100">⏳ Cargando...</span>';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const resp = await fetch(`/upload/${tipo}`, { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.ok) {
+          statusEl.innerHTML = `<span class="text-green-600 font-medium">✅ ${data.nombre}<br><span class="text-wgray-100">${data.registros} registros</span></span>`;
+          iconEl.textContent = '✅';
+        } else {
+          statusEl.innerHTML = `<span class="text-red-600">❌ Error: ${data.error}</span>`;
+        }
+      } catch (e) {
+        statusEl.innerHTML = `<span class="text-red-600">❌ Error de conexión</span>`;
+      }
+    }
+
+    async function runAnalizar() {
+      const btn = document.getElementById('btn-analizar');
+      const msg = document.getElementById('msg-analizar');
+      btn.disabled = true;
+      msg.textContent = '⏳ Procesando...';
+
+      try {
+        const resp = await fetch('/analizar', { method: 'POST' });
+        const data = await resp.json();
+        if (data.ok) {
+          msg.textContent = `✅ ${data.total} registros procesados. Redirigiendo...`;
+          setTimeout(() => { window.location.href = '/resultados'; }, 800);
+        } else {
+          msg.innerHTML = `<span class="text-red-600">❌ ${data.error}</span>`;
+          btn.disabled = false;
+        }
+      } catch (e) {
+        msg.innerHTML = `<span class="text-red-600">❌ Error de conexión</span>`;
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
