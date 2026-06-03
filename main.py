@@ -4,6 +4,7 @@ main.py — Servidor FastAPI: auth, multi-tienda, colaciones y turnos.
 from __future__ import annotations
 
 import io
+from contextlib import asynccontextmanager
 from datetime import date, time
 from typing import Optional
 
@@ -19,11 +20,40 @@ import exporters
 from analyzer import RegistroDia, analizar
 from parsers import extract_store_info, parse_marcas, parse_turnos
 
-# Token para seed inicial (solo se usa una vez)
+# Token para re-seed manual por URL (por si acaso)
 _SEED_TOKEN = "seed-marcaciones-walmart-2026"
 
-app = FastAPI(title="Marcaciones Walmart Chile")
 
+# ---------------------------------------------------------------------------
+# Startup: crea tiendas y usuarios fijos al arrancar (idempotente)
+# ---------------------------------------------------------------------------
+
+def _seed_initial_data() -> None:
+    """Crea las tiendas y usuarios predefinidos si aún no existen."""
+    if db.DEV_MODE:
+        return  # mock data ya disponible en DEV_MODE
+    try:
+        s929 = db.get_or_create_store("929", "La Paloma")
+        s670 = db.get_or_create_store("670", "Local 670")
+        if not db.get_user_by_username("Lider_929"):
+            db.create_user("Lider_929", auth.hash_password("Lider929"),
+                           s929["id"], is_admin=True)
+            print("[seed] Lider_929 creado", flush=True)
+        if not db.get_user_by_username("Lider_670"):
+            db.create_user("Lider_670", auth.hash_password("Lider670"),
+                           s670["id"], is_admin=True)
+            print("[seed] Lider_670 creado", flush=True)
+    except Exception as exc:
+        print(f"[seed] ADVERTENCIA: {exc}", flush=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _seed_initial_data()
+    yield
+
+
+app = FastAPI(title="Marcaciones Walmart Chile", lifespan=lifespan)
 _jinja = Environment(
     loader=FileSystemLoader("templates"),
     autoescape=select_autoescape(["html"]),
@@ -123,14 +153,6 @@ async def login_post(request: Request):
     username = str(form.get("username", "")).strip()
     password = str(form.get("password", "")).strip()
 
-    # Setup inicial: si no hay usuarios, crear el primero como admin
-    if not db.users_exist():
-        return _render("login.html", {
-            "error": "",
-            "setup_mode": True,
-            "username": username,
-        })
-
     user = auth.authenticate(username, password)
     if not user:
         return _render("login.html", {"error": "Usuario o contraseña incorrectos"})
@@ -152,34 +174,6 @@ async def logout(request: Request):
     return response
 
 
-# ---------------------------------------------------------------------------
-# Setup inicial (crear primer usuario admin)
-# ---------------------------------------------------------------------------
-
-@app.post("/setup")
-async def setup_post(request: Request):
-    if db.users_exist():
-        return RedirectResponse("/login", status_code=302)
-    form = await request.form()
-    username = str(form.get("username", "")).strip()
-    password = str(form.get("password", "")).strip()
-    store_id_raw = str(form.get("store_id", "")).strip()
-
-    if not username or not password or not store_id_raw:
-        stores = db.get_all_stores()
-        return _render("login.html", {
-            "error": "Completa todos los campos",
-            "setup_mode": True,
-            "stores": stores,
-        })
-
-    pwd_hash = auth.hash_password(password)
-    user = db.create_user(username, pwd_hash, int(store_id_raw), is_admin=True)
-    token = auth.create_session(user["id"])
-    response = RedirectResponse("/", status_code=302)
-    response.set_cookie("session_token", token, httponly=True,
-                        max_age=60 * 60 * 24 * 7, samesite="lax")
-    return response
 
 
 # ---------------------------------------------------------------------------

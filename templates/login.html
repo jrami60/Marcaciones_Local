@@ -41,8 +41,6 @@
   <main class="flex-1 flex items-center justify-center px-4 py-12">
     <div class="w-full max-w-sm">
 
-      <!-- Card login normal -->
-      {% if not setup_mode %}
       <div class="bg-white rounded-2xl shadow-lg border border-wgray-50 overflow-hidden">
 
         <div class="bg-wblue-100 px-6 py-5 text-white text-center">
@@ -62,7 +60,7 @@
             <label class="block text-xs font-bold text-wgray-160 mb-1">Usuario</label>
             <input type="text" name="username" required autocomplete="username"
               class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100 focus:border-transparent"
-              placeholder="tu.usuario" />
+              placeholder="Lider_929" />
           </div>
           <div>
             <label class="block text-xs font-bold text-wgray-160 mb-1">Contraseña</label>
@@ -76,50 +74,6 @@
           </button>
         </form>
       </div>
-
-      <!-- Setup inicial (primer usuario) -->
-      {% else %}
-      <div class="bg-white rounded-2xl shadow-lg border border-wgray-50 overflow-hidden">
-
-        <div class="bg-wspark-100 px-6 py-5 text-wgray-160 text-center">
-          <div class="text-3xl mb-1">🚀</div>
-          <h2 class="text-lg font-bold">Configuración inicial</h2>
-          <p class="text-wspark-140 text-xs mt-1">Crea el primer usuario administrador</p>
-        </div>
-
-        {% if error %}
-        <div class="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm">❌ {{ error }}</div>
-        {% endif %}
-
-        <form method="post" action="/setup" class="px-6 py-6 space-y-4">
-          <div>
-            <label class="block text-xs font-bold text-wgray-160 mb-1">Usuario</label>
-            <input type="text" name="username" required value="{{ username or '' }}"
-              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100"
-              placeholder="admin" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-wgray-160 mb-1">Contraseña</label>
-            <input type="password" name="password" required
-              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100"
-              placeholder="Mínimo 6 caracteres" />
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-wgray-160 mb-1">Tienda asignada</label>
-            <select name="store_id" required
-              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100">
-              {% for s in stores %}
-              <option value="{{ s.id }}">{{ s.store_number }} – {{ s.store_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <button type="submit"
-            class="w-full bg-wspark-100 hover:bg-yellow-400 text-wgray-160 font-bold py-2.5 rounded-lg transition-colors text-sm">
-            Crear administrador →
-          </button>
-        </form>
-      </div>
-      {% endif %}
 
       <p class="text-center text-xs text-wgray-100 mt-6">
         Walmart Chile · Sistema de Control de Marcaciones
