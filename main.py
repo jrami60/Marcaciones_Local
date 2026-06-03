@@ -29,22 +29,23 @@ _SEED_TOKEN = "seed-marcaciones-walmart-2026"
 # ---------------------------------------------------------------------------
 
 def _seed_initial_data() -> None:
-    """Crea las tiendas y usuarios predefinidos si aún no existen."""
+    """Crea o actualiza las tiendas y usuarios predefinidos (idempotente).
+    Se ejecuta en cada arranque — garantiza credenciales siempre correctas.
+    """
     if db.DEV_MODE:
-        return  # mock data ya disponible en DEV_MODE
+        return
     try:
         s929 = db.get_or_create_store("929", "La Paloma")
         s670 = db.get_or_create_store("670", "Local 670")
-        if not db.get_user_by_username("Lider_929"):
-            db.create_user("Lider_929", auth.hash_password("Lider929"),
-                           s929["id"], is_admin=True)
-            print("[seed] Lider_929 creado", flush=True)
-        if not db.get_user_by_username("Lider_670"):
-            db.create_user("Lider_670", auth.hash_password("Lider670"),
-                           s670["id"], is_admin=True)
-            print("[seed] Lider_670 creado", flush=True)
+        db.upsert_user("Lider_929", auth.hash_password("Lider929"),
+                       s929["id"], is_admin=True)
+        db.upsert_user("Lider_670", auth.hash_password("Lider670"),
+                       s670["id"], is_admin=True)
+        print("[seed] OK: Lider_929 y Lider_670 sincronizados en Supabase", flush=True)
     except Exception as exc:
-        print(f"[seed] ADVERTENCIA: {exc}", flush=True)
+        import traceback
+        print(f"[seed] ERROR al sincronizar usuarios: {exc}", flush=True)
+        traceback.print_exc()
 
 
 @asynccontextmanager

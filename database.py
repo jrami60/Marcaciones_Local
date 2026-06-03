@@ -98,9 +98,28 @@ def create_user(username: str, password_hash: str,
     return r.data[0]
 
 
+def upsert_user(username: str, password_hash: str,
+                store_id: int, is_admin: bool = False) -> dict:
+    """Inserta o actualiza un usuario por username (idempotente).
+    Garantiza que las credenciales siempre sean las correctas.
+    """
+    if DEV_MODE:
+        return {"id": "dev-upsert", "username": username, "store_id": store_id}
+    r = get_db().table("app_users").upsert(
+        {
+            "username": username,
+            "password_hash": password_hash,
+            "store_id": store_id,
+            "is_admin": is_admin,
+        },
+        on_conflict="username",
+    ).execute()
+    return r.data[0]
+
+
 def users_exist() -> bool:
     if DEV_MODE:
-        return True   # En dev siempre hay usuario
+        return True
     r = get_db().table("app_users").select("id").limit(1).execute()
     return len(r.data) > 0
 
