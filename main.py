@@ -10,14 +10,23 @@ from typing import Optional
 
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from analyzer import RegistroDia, analizar
 from parsers import parse_marcas, parse_turnos
 
 app = FastAPI(title="Marcaciones La Paloma 929")
-templates = Jinja2Templates(directory="templates")
+
+# Jinja2 directo — sin el wrapper de starlette que da problemas con v1.2.x
+_jinja = Environment(
+    loader=FileSystemLoader("templates"),
+    autoescape=select_autoescape(["html"]),
+)
+
+
+def _render(template_name: str, context: dict) -> HTMLResponse:
+    tpl = _jinja.get_template(template_name)
+    return HTMLResponse(tpl.render(**context))
 
 # Estado en memoria (single-user desktop app)
 _state: dict = {
@@ -82,8 +91,7 @@ def _registro_to_dict(r: RegistroDia) -> dict:
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {
-        "request": request,
+    return _render("index.html", {
         "marcas_nombre": _state["marcas_nombre"],
         "turnos_nombre": _state["turnos_nombre"],
         "n_resultados": len(_state["resultados"]),
@@ -157,14 +165,11 @@ async def resultados_page(
     con_atraso = sum(1 for r in rows if r["estado_entrada"] == "ATRASO")
     con_extra = sum(1 for r in rows if r["estado_salida"] == "EXTRA")
 
-    # Secciones únicas para filtro
-    todas_secciones = sorted({r["seccion"] for r in _state.get("resultados", []) and
-                               [_registro_to_dict(x) for x in _state["resultados"]]})
+    # Opciones únicas para filtros
     todas_secciones = sorted({_registro_to_dict(r)["seccion"] for r in _state["resultados"]})
-    todas_fechas = sorted({_registro_to_dict(r)["fecha_iso"] for r in _state["resultados"]})
+    todas_fechas    = sorted({_registro_to_dict(r)["fecha_iso"] for r in _state["resultados"]})
 
-    return templates.TemplateResponse("resultados.html", {
-        "request": request,
+    return _render("resultados.html", {
         "rows": rows,
         "total": total,
         "con_exceso": con_exceso,
@@ -184,4 +189,4 @@ async def resultados_page(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="127.0.0.1", port=8765, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8766, reload=True)
