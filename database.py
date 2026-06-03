@@ -28,12 +28,15 @@ if not DEV_MODE:
     _client: Client | None = None
 
     def get_db() -> Client:
+        """Retorna cliente Supabase.
+        Prefiere SUPABASE_SERVICE_KEY (bypasea RLS) sobre SUPABASE_KEY.
+        """
         global _client
         if _client is None:
-            _client = create_client(
-                os.environ["SUPABASE_URL"],
-                os.environ["SUPABASE_KEY"],
-            )
+            url = os.environ["SUPABASE_URL"]
+            # Service key bypasea RLS — ideal para operaciones server-side
+            key = os.getenv("SUPABASE_SERVICE_KEY") or os.environ["SUPABASE_KEY"]
+            _client = create_client(url, key)
         return _client
 
 
