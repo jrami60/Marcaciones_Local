@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Resultados – Marcaciones 929</title>
+  <title>Resultados – Local {{ store_number }} {{ store_name }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script>
@@ -41,16 +41,25 @@
   <header class="bg-wblue-100 text-white shadow-md sticky top-0 z-50">
     <div class="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <a href="/" class="text-white hover:text-wspark-100 font-bold text-lg">← Marcaciones 929</a>
-        <span class="text-blue-200 text-xs hidden md:inline">La Paloma</span>
+        <a href="/" class="text-white hover:text-wspark-100 font-bold text-lg">← Local {{ store_number }}</a>
+        <span class="text-blue-200 text-xs hidden md:inline">{{ store_name }}</span>
       </div>
-      <div class="text-xs text-blue-200 hidden md:block">
+      <div class="text-xs text-blue-200 hidden md:flex items-center gap-3">
         {% if marcas_nombre %}📂 {{ marcas_nombre }}{% endif %}
         {% if turnos_nombre %} · 📅 {{ turnos_nombre }}{% endif %}
       </div>
-      <a href="/" class="bg-wspark-100 hover:bg-yellow-400 text-wgray-160 font-bold py-1 px-4 rounded-full text-xs transition-colors">
-        + Cargar archivos
-      </a>
+      <div class="flex items-center gap-3">
+        <span class="text-blue-200 text-xs hidden sm:inline">{{ user_name }}</span>
+        {% if is_admin %}
+        <a href="/admin/usuarios" class="text-blue-200 hover:text-white text-xs transition-colors">⚙</a>
+        {% endif %}
+        <a href="/" class="bg-wspark-100 hover:bg-yellow-400 text-wgray-160 font-bold py-1 px-4 rounded-full text-xs transition-colors">
+          + Cargar
+        </a>
+        <form method="post" action="/logout" class="inline">
+          <button type="submit" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full transition-colors">Salir</button>
+        </form>
+      </div>
     </div>
   </header>
 
@@ -300,7 +309,7 @@
   </main>
 
   <footer class="text-center text-xs text-wgray-100 py-6">
-    Walmart Chile · 929 La Paloma · Sistema de Control de Marcaciones
+    Walmart Chile · Local {{ store_number }} {{ store_name }} · Sistema de Control de Marcaciones
   </footer>
 
   <script>

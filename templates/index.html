@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Marcaciones 929 – La Paloma</title>
+  <title>Marcaciones {{ store_number }} – {{ store_name }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
   <script>
@@ -33,8 +33,25 @@
         </svg>
       </div>
       <div>
-        <h1 class="text-2xl font-bold tracking-tight">Marcaciones 929 – La Paloma</h1>
+        <h1 class="text-2xl font-bold tracking-tight">Marcaciones {{ store_number }} – {{ store_name }}</h1>
         <p class="text-blue-200 text-sm">Control de colaciones y turnos planificados</p>
+      </div>
+      <!-- Usuario + logout -->
+      <div class="ml-auto flex items-center gap-3">
+        {% if is_admin %}
+        <a href="/admin/usuarios"
+          class="hidden md:inline text-blue-200 hover:text-white text-xs transition-colors">⚙ Usuarios</a>
+        {% endif %}
+        <div class="text-right hidden sm:block">
+          <div class="text-xs font-bold">{{ user_name }}</div>
+          <div class="text-blue-200 text-[10px]">Local {{ store_number }}</div>
+        </div>
+        <form method="post" action="/logout">
+          <button type="submit"
+            class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors">
+            Salir
+          </button>
+        </form>
       </div>
     </div>
   </header>
@@ -145,8 +162,46 @@
 
   </main>
 
+  <!-- Historial de análisis -->
+  {% if history %}
+  <section class="max-w-5xl mx-auto px-6 pb-6">
+    <div class="bg-white rounded-2xl shadow border border-wgray-50 p-5">
+      <h3 class="font-bold text-sm text-wgray-160 mb-3">🕒 Análisis recientes — Local {{ store_number }}</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs border-collapse">
+          <thead>
+            <tr class="bg-wgray-10 text-wgray-160">
+              <th class="px-3 py-2 text-left font-bold">Fecha análisis</th>
+              <th class="px-3 py-2 text-left font-bold">Archivo marcas</th>
+              <th class="px-3 py-2 text-left font-bold">Archivo turnos</th>
+              <th class="px-3 py-2 text-center font-bold">Registros</th>
+              <th class="px-3 py-2 text-center font-bold">Ver</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in history %}
+            <tr class="border-b border-wgray-50 hover:bg-wgray-10 transition-colors">
+              <td class="px-3 py-2 font-medium">{{ h.result_date }}</td>
+              <td class="px-3 py-2 text-wgray-100 truncate max-w-[200px]">{{ h.filename_marcas or '—' }}</td>
+              <td class="px-3 py-2 text-wgray-100 truncate max-w-[200px]">{{ h.filename_turnos or '—' }}</td>
+              <td class="px-3 py-2 text-center font-bold text-wblue-100">{{ h.total_records }}</td>
+              <td class="px-3 py-2 text-center">
+                <a href="/resultados?analysis_id={{ h.id }}"
+                  class="bg-wblue-100 hover:bg-wblue-110 text-white rounded-full px-3 py-0.5 text-[10px] font-bold transition-colors">
+                  Ver →
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
   <footer class="text-center text-xs text-wgray-100 py-6">
-    Walmart Chile · 929 La Paloma · Sistema de Control de Marcaciones
+    Walmart Chile · Local {{ store_number }} {{ store_name }} · Sistema de Control de Marcaciones
   </footer>
 
   <script>

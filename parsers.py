@@ -96,6 +96,29 @@ def _to_date(val) -> date | None:
 # Public parsers
 # ---------------------------------------------------------------------------
 
+def extract_store_info(file: IO[bytes]) -> dict:
+    """Extrae numero y nombre de tienda desde la primera fila del Excel de marcas."""
+    wb = openpyxl.load_workbook(file, data_only=True)
+    ws = wb.active
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        division = str(row[2] or "").strip()   # ej. 'N929'
+        subdir   = str(row[3] or "").strip()   # ej. 'H - Suc. 929 La Paloma'
+        if division.startswith("N") and division[1:].isdigit():
+            store_number = division[1:]          # '929'
+            store_name   = _parse_store_name(subdir, store_number)
+            return {"store_number": store_number, "store_name": store_name}
+    return {"store_number": "000", "store_name": "Tienda desconocida"}
+
+
+def _parse_store_name(subdir: str, store_number: str) -> str:
+    """'H - Suc. 929 La Paloma' → 'La Paloma'."""
+    idx = subdir.find(store_number)
+    if idx != -1:
+        name = subdir[idx + len(store_number):].strip()
+        return name if name else subdir
+    return subdir
+
+
 def parse_marcas(file: IO[bytes]) -> list[Marca]:
     """Lee el archivo 'Reporte Marcas' y retorna lista de Marca."""
     wb = openpyxl.load_workbook(file, data_only=True)

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciar Sesión – Marcaciones Walmart</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            wblue: { 100: '#0053e2', 110: '#0046c0' },
+            wspark: { 100: '#ffc220', 10: '#fff8e1', 140: '#995213' },
+            wred:   { 100: '#ea1100' },
+            wgreen: { 100: '#2a8703' },
+            wgray:  { 10: '#f5f5f5', 50: '#d9d9d9', 100: '#b3b3b3', 160: '#333333' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-wgray-10 min-h-screen flex flex-col font-sans text-wgray-160">
+
+  <!-- Header -->
+  <header class="bg-wblue-100 text-white shadow-md">
+    <div class="max-w-md mx-auto px-6 py-4 flex items-center gap-3">
+      <div class="bg-wspark-100 rounded-full p-2">
+        <svg class="w-6 h-6 text-wgray-160" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L3 7v10l9 5 9-5V7L12 2zm0 2.5l6.5 3.6v7.8L12 19.5l-6.5-3.6V8.1L12 4.5z"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight">Marcaciones Walmart</h1>
+        <p class="text-blue-200 text-xs">Control de colaciones y turnos</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-sm">
+
+      <!-- Card login normal -->
+      {% if not setup_mode %}
+      <div class="bg-white rounded-2xl shadow-lg border border-wgray-50 overflow-hidden">
+
+        <div class="bg-wblue-100 px-6 py-5 text-white text-center">
+          <div class="text-3xl mb-1">🔐</div>
+          <h2 class="text-lg font-bold">Iniciar Sesión</h2>
+          <p class="text-blue-200 text-xs mt-1">Ingresa con tu usuario y contraseña</p>
+        </div>
+
+        {% if error %}
+        <div class="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm flex items-center gap-2">
+          <span>❌</span> {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/login" class="px-6 py-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-wgray-160 mb-1">Usuario</label>
+            <input type="text" name="username" required autocomplete="username"
+              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100 focus:border-transparent"
+              placeholder="tu.usuario" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-wgray-160 mb-1">Contraseña</label>
+            <input type="password" name="password" required autocomplete="current-password"
+              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100 focus:border-transparent"
+              placeholder="••••••••" />
+          </div>
+          <button type="submit"
+            class="w-full bg-wblue-100 hover:bg-wblue-110 text-white font-bold py-2.5 rounded-lg transition-colors text-sm">
+            Ingresar →
+          </button>
+        </form>
+      </div>
+
+      <!-- Setup inicial (primer usuario) -->
+      {% else %}
+      <div class="bg-white rounded-2xl shadow-lg border border-wgray-50 overflow-hidden">
+
+        <div class="bg-wspark-100 px-6 py-5 text-wgray-160 text-center">
+          <div class="text-3xl mb-1">🚀</div>
+          <h2 class="text-lg font-bold">Configuración inicial</h2>
+          <p class="text-wspark-140 text-xs mt-1">Crea el primer usuario administrador</p>
+        </div>
+
+        {% if error %}
+        <div class="mx-6 mt-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm">❌ {{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/setup" class="px-6 py-6 space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-wgray-160 mb-1">Usuario</label>
+            <input type="text" name="username" required value="{{ username or '' }}"
+              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100"
+              placeholder="admin" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-wgray-160 mb-1">Contraseña</label>
+            <input type="password" name="password" required
+              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100"
+              placeholder="Mínimo 6 caracteres" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-wgray-160 mb-1">Tienda asignada</label>
+            <select name="store_id" required
+              class="w-full border border-wgray-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-wblue-100">
+              {% for s in stores %}
+              <option value="{{ s.id }}">{{ s.store_number }} – {{ s.store_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit"
+            class="w-full bg-wspark-100 hover:bg-yellow-400 text-wgray-160 font-bold py-2.5 rounded-lg transition-colors text-sm">
+            Crear administrador →
+          </button>
+        </form>
+      </div>
+      {% endif %}
+
+      <p class="text-center text-xs text-wgray-100 mt-6">
+        Walmart Chile · Sistema de Control de Marcaciones
+      </p>
+    </div>
+  </main>
+
+</body>
+</html>

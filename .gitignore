@@ -6,3 +6,6 @@ __pycache__/
 uploads/
 *.xlsx
 *.xls
+*.log
+preload.py
+test_logic.py
